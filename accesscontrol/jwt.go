@@ -44,11 +44,12 @@ type JWT struct {
 	permissionsClaim      string
 	permissionsMap        map[string][]string
 	jwks                  *jwk.JWKS
+	introspector          *Introspector
 }
 
 // NewJWT parses the key and creates Validation obj which can be referenced in related handlers.
-func NewJWT(jwtConf *config.JWT, key []byte) (*JWT, error) {
-	jwtAC, err := newJWT(jwtConf)
+func NewJWT(jwtConf *config.JWT, introspector *Introspector, key []byte) (*JWT, error) {
+	jwtAC, err := newJWT(jwtConf, introspector)
 	if err != nil {
 		return nil, err
 	}
@@ -112,12 +113,12 @@ func parsePublicPEMKey(key []byte) (pub interface{}, err error) {
 	return pubKey, nil
 }
 
-func NewJWTFromJWKS(jwtConf *config.JWT, jwks *jwk.JWKS) (*JWT, error) {
+func NewJWTFromJWKS(jwtConf *config.JWT, introspector *Introspector, jwks *jwk.JWKS) (*JWT, error) {
 	if jwks == nil {
 		return nil, fmt.Errorf("invalid JWKS")
 	}
 
-	jwtAC, err := newJWT(jwtConf)
+	jwtAC, err := newJWT(jwtConf, introspector)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +130,7 @@ func NewJWTFromJWKS(jwtConf *config.JWT, jwks *jwk.JWKS) (*JWT, error) {
 	return jwtAC, nil
 }
 
-func newJWT(jwtConf *config.JWT) (*JWT, error) {
+func newJWT(jwtConf *config.JWT, introspector *Introspector) (*JWT, error) {
 	source, err := NewTokenSource(jwtConf.Bearer, jwtConf.Cookie, jwtConf.Header, jwtConf.TokenValue)
 	if err != nil {
 		return nil, err
@@ -143,6 +144,7 @@ func newJWT(jwtConf *config.JWT) (*JWT, error) {
 		claims:                jwtConf.Claims,
 		claimsRequired:        jwtConf.ClaimsRequired,
 		disablePrivateCaching: jwtConf.DisablePrivateCaching,
+		introspector:          introspector,
 		name:                  jwtConf.Name,
 		rolesClaim:            jwtConf.RolesClaim,
 		rolesMap:              jwtConf.RolesMap,
@@ -204,6 +206,19 @@ func (j *JWT) Validate(req *http.Request) error {
 	}
 
 	ctx := req.Context()
+	if j.introspector != nil {
+		exp, _ := tokenClaims["exp"].(float64)
+		nbf, _ := tokenClaims["nbf"].(float64)
+		introspectionResponse, err := j.introspector.Introspect(ctx, tokenValue, int64(exp), int64(nbf))
+		if err != nil {
+			return err
+		}
+
+		if !introspectionResponse.Active() {
+			return errors.JwtTokenExpired.Message("token inactive")
+		}
+	}
+
 	acMap, ok := ctx.Value(request.AccessControls).(map[string]interface{})
 	if !ok {
 		acMap = make(map[string]interface{})

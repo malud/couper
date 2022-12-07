@@ -128,7 +128,7 @@ QolLGgj3tz4NbDEitq+zKMr0uTHvP1Vyu1mXAflcpYcJA4ZmuB3Oj39e0U0gnmr/
 					ClaimsRequired:     tt.fields.claimsRequired,
 					Name:               "test_ac",
 					SignatureAlgorithm: tt.fields.algorithm,
-				}, key)
+				}, nil, key)
 				if jerr != nil {
 					if tt.wantErr != jerr.Error() {
 						subT.Errorf("error: %v, want: %v", jerr.Error(), tt.wantErr)
@@ -321,7 +321,7 @@ func Test_JWT_Validate(t *testing.T) {
 					Cookie:             tt.fields.cookie,
 					Header:             tt.fields.header,
 					TokenValue:         tt.fields.tokenValue,
-				}, tt.fields.pubKey)
+				}, nil, tt.fields.pubKey)
 				if err != nil {
 					subT.Error(err)
 					return
@@ -642,7 +642,7 @@ func Test_JWT_yields_permissions(t *testing.T) {
 				RolesClaim:         tt.rolesClaim,
 				RolesMap:           rolesMap,
 				SignatureAlgorithm: algo.String(),
-			}, pubKeyBytes)
+			}, nil, pubKeyBytes)
 			if err != nil {
 				subT.Fatal(err)
 			}
