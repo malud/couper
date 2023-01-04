@@ -10,25 +10,34 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/hcl/v2"
+
 	"github.com/avenga/couper/cache"
 	"github.com/avenga/couper/config"
 	"github.com/avenga/couper/config/request"
 	"github.com/avenga/couper/eval"
+	"github.com/avenga/couper/oauth2"
 )
 
 type Introspector struct {
-	conf      *config.Introspection
-	memStore  *cache.MemoryStore
-	mu        sync.Mutex
-	transport http.RoundTripper
+	authenticator *oauth2.ClientAuthenticator
+	conf          *config.Introspection
+	memStore      *cache.MemoryStore
+	mu            sync.Mutex
+	transport     http.RoundTripper
 }
 
-func NewIntrospector(conf *config.Introspection, transport http.RoundTripper, memStore *cache.MemoryStore) *Introspector {
-	return &Introspector{
-		conf:      conf,
-		memStore:  memStore,
-		transport: transport,
+func NewIntrospector(evalCtx *hcl.EvalContext, conf *config.Introspection, transport http.RoundTripper, memStore *cache.MemoryStore) (*Introspector, error) {
+	authenticator, err := oauth2.NewClientAuthenticator(evalCtx, conf.EndpointAuthMethod, "endpoint_auth_method", conf.ClientID, conf.ClientSecret, "", conf.JWTSigningProfile)
+	if err != nil {
+		return nil, err
 	}
+	return &Introspector{
+		authenticator: authenticator,
+		conf:          conf,
+		memStore:      memStore,
+		transport:     transport,
+	}, nil
 }
 
 type IntrospectionResponse map[string]interface{}
@@ -70,6 +79,12 @@ func (i *Introspector) Introspect(ctx context.Context, token string, exp, nbf in
 
 	formParams := &url.Values{}
 	formParams.Add("token", token)
+
+	err := i.authenticator.Authenticate(formParams, req)
+	if err != nil {
+		return nil, err
+	}
+
 	eval.SetBody(req, []byte(formParams.Encode()))
 
 	req = req.WithContext(outCtx)
