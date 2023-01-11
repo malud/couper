@@ -2210,11 +2210,11 @@ func TestTokenRequest_Runtime_Errors(t *testing.T) {
 func Test_OAuth2_Introspection_Caching(t *testing.T) {
 	helper := test.New(t)
 
-	introspectCalled := 0
+	var introspectCalled uint32
 	active := true
 	asOrigin := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		if req.URL.Path == "/introspect" {
-			introspectCalled++
+			atomic.AddUint32(&introspectCalled, 1)
 			rw.Header().Set("Content-Type", "application/json")
 			rw.WriteHeader(http.StatusOK)
 
@@ -2325,11 +2325,11 @@ func Test_OAuth2_Introspection_Caching(t *testing.T) {
 func Test_OAuth2_Introspection_NonCaching(t *testing.T) {
 	helper := test.New(t)
 
-	introspectCalled := 0
+	var introspectCalled uint32
 	active := true
 	asOrigin := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		if req.URL.Path == "/introspect" {
-			introspectCalled++
+			atomic.AddUint32(&introspectCalled, 1)
 			rw.Header().Set("Content-Type", "application/json")
 			rw.WriteHeader(http.StatusOK)
 
