@@ -10,10 +10,14 @@ Unreleased changes are available as `avenga/couper:edge` container.
   * IPv6 support via [`-bind-address`](https://docs.couper.io/configuration/command-line#network-options) option. ([#752](https://github.com/avenga/couper/pull/752))
   * If Couper starts with `-watch` CLI flag, watch referenced files, too ([#747](https://github.com/avenga/couper/pull/747))
 
+* **Changed**
+  * More specific error log messages for [`oauth2`](https://docs.couper.io/configuration/block/oauth2) and [`beta_token_request`](https://docs.couper.io/configuration/block/token_request) token request errors ([#755](https://github.com/avenga/couper/pull/755))
+
 * **Fixed**
   * Erroneously sending an empty [`Server-Timing` header](https://docs.couper.io/configuration/command-line#oberservation-options) ([#700](https://github.com/avenga/couper/pull/700))
   * `WWW-Authenticate` header `realm` param value for [`basic_auth`](https://docs.couper.io/configuration/block/basic_auth) ([#715](https://github.com/avenga/couper/pull/715))
   * [`Server-Timing` header](https://docs.couper.io/configuration/block/settings) only reporting last requests/proxies of [endpoint sequences](https://docs.couper.io/configuration/block/endpoint#endpoint-sequence) ([#751](https://github.com/avenga/couper/pull/751))
+  * Selecting of appropriate [error handler](https://docs.couper.io/configuration/block/error_handler) in two cases ([#753](https://github.com/avenga/couper/pull/753))
 
 * **Dependencies**
   * build with go 1.20 ([#745](https://github.com/avenga/couper/pull/745))
